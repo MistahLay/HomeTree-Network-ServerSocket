@@ -31,7 +31,7 @@ Sent packets must follow this JSON format if not it will be ignored.
 ```json
 {
     "packet_type":"packet_types",
-    "packet": {...}
+    "packet": {}
 }
 ```
 
@@ -53,7 +53,7 @@ JSON format
 {
     "id": 10101010101010,
     "request_type": "Request Types",
-    "request":{...}
+    "request":{}
 }
 ```
 
@@ -73,7 +73,7 @@ JSON format
 {
     "id": 101010,
     "success": true,
-    "response": {...}|string
+    "response": "{}|string"
 }
 ```
 #### **Client Events**
