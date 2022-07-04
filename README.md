@@ -80,7 +80,11 @@ JSON format
 ```
 #### **Client Events**
 Everything must be followed and not empty or it will be ignored.
-**event_type** must be a valid based on the logined client if not it will
+
+**event_type** must be a valid based on the logined client.
+
+**event** must be based on the event_type.
+
 JSON Format
 ```json
 {
