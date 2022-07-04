@@ -13,10 +13,12 @@ The server will give a name based on the password that the client sent
 ```
 Client connecting...
 Client password is valid!
+**************************************************
 Client has been accepted as Pocketmine Server
 Client connecting...
 Client password was trying to use "Pocketmine Server" password but its currently being use by another client.
 Client has been kicked.
+**************************************************
 Client connecting...
 Client sent invalid password.
 Client has been kicked.
@@ -58,13 +60,13 @@ JSON format
 ```
 
 #### **Response**
-sd and success must be followed and not empty or it will be ignored
+**id** and **success** must be followed and not empty or it will be ignored.
 
-**id** must be int/number.
+**ID** must be int/number.
 
-**success** must be bool.
+**Success** must be bool.
 
-**response** if **success** property is true then it could have a response object or none, if false however it should have a response error which is a string.
+**Response** if **success** property is true then it could have a response object or none, if false however it should have a response error which is a string.
 
 **note**: If the **response** isnt based on the request then the client that requested it will ignore it.
 
@@ -77,3 +79,12 @@ JSON format
 }
 ```
 #### **Client Events**
+Everything must be followed and not empty or it will be ignored.
+**event_type** must be a valid based on the logined client if not it will
+JSON Format
+```json
+{
+    "event_type": "Event types",
+    "event": {}
+}
+```
