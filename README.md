@@ -4,7 +4,7 @@ A network protocol for the HomeTreePE Server
 
 ## How it works
 ### **Connections**
-The clients will connect to the server then they **must** send a password to connect if the password is wrong the server will kick the client and it should shut down
+The clients will connect to the server then they **must** send a password to connect if the password is invalid the server will kick the client and it should shut down
 
 The server can only have specific clients based on the password and it will not accept other clients if the sent password is already been used
 
