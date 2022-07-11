@@ -28,6 +28,7 @@ export function Verify(pk:Packet):boolean{
             case "request":
                 return verifyRequestPacket(pk.packet)
             case "client_event":
+                console.log("E")
                 return verifyClientEventPacket(pk.packet)
             case "response":
                 return verifyResponsePacket(pk.packet)

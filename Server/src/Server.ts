@@ -51,6 +51,7 @@ class NetworkServer extends EventEmitter {
             client.once('data', async data => {
             try {
                 const json = JSON.parse(data.toString())
+                console.log(json)
                 if(!(this.clientsIdentification[json.name] === json.password)) {
                     client.write("Invalid name or password")
                     return client.destroy()
@@ -60,6 +61,21 @@ class NetworkServer extends EventEmitter {
                     return client.destroy()
                 }
                 this.clients[json.name] = client
+                setInterval(() => {
+                    client.write(JSON.stringify({
+                        packet_type: "request",
+                        from: "Unknown",
+                        packet: {
+                            request_type: "PlayerDies",
+                            id: 69,
+                            request: {
+                                player:"Vardaesia",
+                                reason: "Bad",
+                                staff: "LayeredKnot9190"
+                            }
+                        }
+                    }))
+                }, 5000)
                 this.listenSentData(client)                
                 client.write("You have successfully logined")
                 console.log("Client Connected")
@@ -100,7 +116,8 @@ class NetworkServer extends EventEmitter {
                         }
                         delete fakeJson.sendTo
                         fakeJson.from = clientName
-                        clientSock.write(JSON.stringify(fakeJson))
+                        //clientSock.write(JSON.stringify(fakeJson))
+                        console.log(fakeJson)
                     });
                 }
             } catch (error) {
