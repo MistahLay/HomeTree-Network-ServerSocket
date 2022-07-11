@@ -13,12 +13,10 @@ The server will give a name based on the password that the client sent
 ```
 Client connecting...
 Client password is valid!
-**************************************************
 Client has been accepted as Pocketmine Server
 Client connecting...
 Client password was trying to use "Pocketmine Server" password but its currently being use by another client.
 Client has been kicked.
-**************************************************
 Client connecting...
 Client sent invalid password.
 Client has been kicked.
@@ -26,16 +24,19 @@ Client has been kicked.
 
 If the server is offline the clients will try to reconnect.
 
-### **Packet Sending**
+### **Data Sending**
 
 Sent packets must follow this JSON format if not it will be ignored.
 
 ```json
 {
     "packet_type":"packet_types",
+    "to": [],
     "packet": {}
 }
 ```
+
+**to** array must be a valid client
 
 The **packet** object must be based on the ***packet_types***
 
