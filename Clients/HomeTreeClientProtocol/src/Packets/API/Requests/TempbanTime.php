@@ -1,5 +1,5 @@
 <?php
-namespace HTNProtocol\Packets\Requests;
+namespace HTNProtocol\Packets\API\Requests;
 
 use HTNProtocol\Packets\Exceptions\PacketExeption;
 
