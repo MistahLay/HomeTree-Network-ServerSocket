@@ -30,16 +30,7 @@ class NetworkServer extends EventEmitter {
         this.start(8080, "localhost")
     }
     private async registerClients() {
-        const ClientsFolder = await fs.readdir('./Clients')
-        ClientsFolder.forEach(async value => {
-            try {
-                const clientPassword = await fs.readFile(`./Clients/${value}/Password.txt`)
-                if(this.clientsIdentification[value]) return;
-                this.clientsIdentification[value] = clientPassword.toString()
-            } catch (error) {
-            return
-        }
-    })
+        this.clientsIdentification = require('./clients.json')
     }
     private listenClientsConnection(){
         this.server.on('connection', client => {
@@ -54,25 +45,23 @@ class NetworkServer extends EventEmitter {
                 console.log(json)
                 if(!(this.clientsIdentification[json.name] === json.password)) {
                     client.write("Invalid name or password")
+                    console.log(this.clientsIdentification)
                     return client.destroy()
                 }
                 if(this.clients[json.name]) {
                     client.write("A client is already using that profile")
+                    console.log("A")
                     return client.destroy()
                 }
                 this.clients[json.name] = client
                 setInterval(() => {
                     client.write(JSON.stringify({
-                        packet_type: "request",
-                        from: "Unknown",
-                        packet: {
-                            request_type: "PlayerDies",
-                            id: 69,
-                            request: {
-                                player:"Vardaesia",
-                                reason: "Bad",
-                                staff: "LayeredKnot9190"
-                            }
+                        from: "Pocketmine",
+                        data_type: "EconomyEvent",
+                        data: {
+                            player: "Vardaesia",
+                            money: 1,
+                            event: "shop"
                         }
                     }))
                 }, 5000)
