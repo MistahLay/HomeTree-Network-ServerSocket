@@ -1,3 +1,5 @@
 Test
 .vscode
 node_modules
+certificates
+clients.json
