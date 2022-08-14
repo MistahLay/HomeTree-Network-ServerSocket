@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "@types/node": "^18.0.1",
-    "bson": "^4.6.4"
+    "@types/ws": "^8.5.3",
+    "bson": "^4.6.4",
+    "objectmodel": "^4.3.0",
+    "ws": "^8.8.1"
   }
 }
