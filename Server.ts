@@ -1,7 +1,11 @@
-import net from "net";
 import { ArrayModel, ObjectModel } from "objectmodel";
 import { EventEmitter } from "events";
 import WebSocket, { WebSocketServer } from "ws";
+import https from "https";
+import fs from "fs";
+import child_process from "child_process";
+import schedule from "node-schedule";
+import { X509Certificate } from "crypto";
 type NetworkServerEvents =
     | "client_login"
     | "client_leave"
@@ -66,9 +70,14 @@ class NetworkServer extends EventEmitter {
     clients: { [key: string]: WebSocket } = {};
     constructor() {
         super();
-        this.server = new WebSocketServer({ port: 8080, host: "localhost" });
+        this.server = new WebSocketServer({
+            host: "localhost",
+            port: 8080,
+        });
+        // schedule.scheduleJob(new Date())
         this.registerClients();
         this.listenClientsConnection();
+        console.log("Server is ready");
     }
     private async registerClients() {
         this.clientsIdentification = require("./clients.json");
@@ -143,7 +152,7 @@ class NetworkServer extends EventEmitter {
         if (key) delete this.clients[key];
     }
     private listenSentData(client: WebSocket, name: string) {
-        client.on("data", (data) => {
+        client.on("message", (data) => {
             try {
                 const json: SentJson = JSON.parse(data.toString());
                 if (json.api) {
@@ -168,7 +177,6 @@ class NetworkServer extends EventEmitter {
                 }
                 if (json.data_type === "success") return client.close();
                 new Model(json);
-                console.log(json);
                 this.sendSentData(json, name);
             } catch (error) {
                 console.error(error);
