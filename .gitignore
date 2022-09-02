@@ -3,3 +3,4 @@ certificates
 clients.json
 src/.env
 src/ServerTemp.ts
+node_modules
