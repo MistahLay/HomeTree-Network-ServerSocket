@@ -1,233 +1,72 @@
-import { ArrayModel, ObjectModel } from "objectmodel";
-import { EventEmitter } from "events";
-import WebSocket, { WebSocketServer } from "ws";
-import https from "https";
-import fs from "fs";
-import child_process from "child_process";
-import schedule from "node-schedule";
-import { X509Certificate } from "crypto";
-type NetworkServerEvents =
-    | "client_login"
-    | "client_leave"
-    | "start"
-    | "shutdown"
-    | "crash"
-    | "client_send_data";
-type NetworkServerEvent<T extends NetworkServerEvents> = T extends "shutdown"
-    ? null
-    : T extends "crash"
-    ? string
-    : T extends "start"
-    ? null
-    : T extends "client_login"
-    ? number
-    : T extends "client_send_data"
-    ? number
-    : never;
-interface NetworkServer {
-    on<T extends NetworkServerEvents>(
-        eventType: T,
-        event: (event: NetworkServerEvent<T>) => void
-    ): this;
-}
-interface SentJson {
-    data: object;
+import ws from "ws";
+import dotenv from "dotenv";
+import { Worker } from "worker_threads";
+dotenv.config({ path: __dirname + "/.env" });
+export interface Data {
+    data: any;
     data_type: string;
-    api?: "request" | "response";
-    id?: string;
-    success?: string | true;
     to: string | string[];
+    api?: "response" | "request";
+    id?: string;
 }
-const Model = new ObjectModel({
-    data_type: String,
-    data: Object,
-    to: [String, new ArrayModel(String)],
-});
-const ApiModel = new ObjectModel({
-    data_type: String,
-    data: Object,
-    api: ["request", "response"],
-    id: String,
-    to: [String, new ArrayModel(String)],
-});
-const ErrorResponseModel = new ObjectModel({
-    data_type: "error",
-    data: String,
-    api: "response",
-    id: String,
-    to: [String, new ArrayModel(String)],
-});
-const SuccessDataModel = new ObjectModel({
-    data_type: "success",
-    data: [undefined, null],
-    api: "response",
-    id: String,
-    to: [String, new ArrayModel(String)],
-});
-class NetworkServer extends EventEmitter {
-    public server: WebSocketServer;
-    clientsIdentification: { [key: string]: string } = {};
-    clients: { [key: string]: WebSocket } = {};
+export interface ClientEvent {
+    type: "client_left" | "client_joined";
+    client?: ws.WebSocket;
+    client_name: string;
+}
+export interface Clients {
+    [key: string]: ws.WebSocket;
+}
+class Server {
+    websocket: ws.Server;
+    clients: Clients = {};
+    client_tokens: { [key: string]: string } = {};
+
     constructor() {
-        super();
-        this.server = new WebSocketServer({
-            host: "localhost",
-            port: 8080,
+        if (!process.env.PORT) throw new Error("Port must be added");
+        if (!process.env.HOST) throw new Error("Host must be added");
+        this.websocket = new ws.Server({
+            host: process.env.HOST,
+            port: parseInt(process.env.PORT),
         });
-        this.registerClients();
-        this.listenClientsConnection();
-        console.log("Server is ready");
     }
-    private async registerClients() {
-        this.clientsIdentification = require("./clients.json");
-    }
-    private listenClientsConnection() {
-        this.server.on("connection", (client) => {
-            console.log("Client connecting...");
-            client.once("message", async (data) => {
+
+    listenClients() {
+        this.websocket.on("connection", (client) => {
+            client.once("message", (data) => {
                 try {
                     const json = JSON.parse(data.toString());
-                    if (
-                        !(
-                            this.clientsIdentification[json.name] ===
-                            json.password
-                        )
-                    ) {
-                        console.log(this.clientsIdentification);
-                        return client.close();
+                    if (!(this.client_tokens[json.name] === json.password)) {
+                        return client.close(99, "Invalid name or token");
                     }
-                    if (this.clients[json.name]) return client.close();
-
+                    if (this.client_tokens[json.name])
+                        return client.close(98, "A client is already using it");
+                    const client_thread = new Worker(
+                        __dirname + "/RunWorker.js",
+                        {
+                            workerData: {
+                                client_name: json.name,
+                                client,
+                                clients: this.clients,
+                            },
+                        }
+                    );
+                    client_thread.once("message", (data: ClientEvent) => {});
                     this.clients[json.name] = client;
-                    this.sendSentData(
-                        {
-                            data: {
-                                clients: Object.keys(this.clients),
-                            },
-                            data_type: "Clients",
-                            to: json.name,
-                        },
-                        "Server"
-                    );
-                    this.sendSentData(
-                        {
-                            data: {
-                                client: json.name,
-                            },
-                            data_type: "ClientJoin",
-                            to: "all",
-                        },
-                        "Server"
-                    );
-                    client.once("error", () => {});
-                    client.once("close", () => {
-                        this.removeClient(client);
-                        this.sendSentData(
-                            {
-                                data: {
-                                    client: json.name,
-                                },
-                                data_type: "ClientClose",
-                                to: "all",
-                            },
-                            "Server"
-                        );
-                        client.removeAllListeners();
-                        console.log("Closed Connection");
-                    });
-                    this.listenSentData(client, json.name);
-                    console.log("Client Connected");
-                    return true;
                 } catch (error) {
-                    client.close();
+                    client.close(100, "Data isn't valid json");
                 }
             });
         });
     }
-    removeClient(client: WebSocket) {
-        const key = Object.keys(this.clients).find(
-            (key) => this.clients[key] === client
-        );
-        if (key) delete this.clients[key];
-    }
-    private listenSentData(client: WebSocket, name: string) {
-        client.on("message", (data) => {
-            try {
-                const json: SentJson = JSON.parse(data.toString());
-                if (json.api) {
-                    if (!(json.api === "request" || json.api === "response"))
-                        return client.close();
-                    if (json.data_type === "error")
-                        return json.api === "response"
-                            ? this.sendSentData(
-                                  new ErrorResponseModel(json) as SentJson,
-                                  name
-                              )
-                            : client.close();
-                    if (json.data_type === "success")
-                        return this.sendSentData(
-                            new SuccessDataModel(json) as SentJson,
-                            name
-                        );
-                    return this.sendSentData(
-                        new ApiModel(json) as SentJson,
-                        name
-                    );
-                }
-                if (json.data_type === "success") return client.close();
-                new Model(json);
-                this.sendSentData(json, name);
-            } catch (error) {
-                console.error(error);
-                client.close();
-            }
-        });
-    }
-    sendSentData(data: SentJson, from: string) {
-        if (data.to === "all") {
-            for (const key in this.clients) {
-                try {
-                    this.clients[key].send(
-                        JSON.stringify({
-                            data: data.data,
-                            from,
-                            data_type: data.data_type,
-                            api: data.api,
-                            id: data.id,
-                        })
-                    );
-                } catch (error) {
-                    continue;
-                }
-            }
-            return;
+
+    sendToAll(data: any, data_type: string) {
+        for (const key in this.clients) {
+            this.clients[key].send({
+                data,
+                data_type,
+                from: "Server",
+            });
         }
-        if (Array.isArray(data.to)) {
-            for (let i = 0; i < data.to.length; i++) {
-                if (!this.clients[data.to[i]]) continue;
-                this.clients[data.to[i]].send(
-                    JSON.stringify({
-                        data: data.data,
-                        from,
-                        data_type: data.data_type,
-                        api: data.api,
-                        success: data.success,
-                        id: data.id,
-                    })
-                );
-            }
-            return;
-        }
-        this.clients[data.to].send(
-            JSON.stringify({
-                data: data.data,
-                from,
-                data_type: data.data_type,
-                api: data.api,
-                success: data.success,
-                id: data.id,
-            })
-        );
     }
 }
-new NetworkServer();
