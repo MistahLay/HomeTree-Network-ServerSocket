@@ -2,4 +2,4 @@
 certificates
 clients.json
 src/.env
-src/ServerTemp
+src/ServerTemp.ts
